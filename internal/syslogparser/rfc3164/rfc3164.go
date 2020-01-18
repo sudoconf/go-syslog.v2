@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"gopkg.in/mcuadros/go-syslog.v2/internal/syslogparser"
+	"github.com/sudoconf/go-syslog.v2/internal/syslogparser"
 )
 
 type Parser struct {

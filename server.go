@@ -6,7 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"golang.org/x/sys/unix"
-	"gopkg.in/mcuadros/go-syslog.v2/format"
+	"github.com/sudoconf/go-syslog.v2/format"
 	"net"
 	"strings"
 	"sync"

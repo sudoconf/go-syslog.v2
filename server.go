@@ -2,14 +2,16 @@ package syslog
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"errors"
+	"golang.org/x/sys/unix"
+	"gopkg.in/mcuadros/go-syslog.v2/format"
 	"net"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
-
-	"gopkg.in/mcuadros/go-syslog.v2/format"
 )
 
 var (
@@ -20,8 +22,8 @@ var (
 )
 
 const (
-	datagramChannelBufferSize = 10
-	datagramReadBufferSize    = 64 * 1024
+	datagramChannelBufferSize = 10 * 1024 * 1024
+	datagramReadBufferSize    = 500 * 1024 * 1024
 )
 
 // A function type which gets the TLS peer name from the connection. Can return
@@ -93,6 +95,39 @@ func (s *Server) ListenUDP(addr string) error {
 		return err
 	}
 	connection.SetReadBuffer(datagramReadBufferSize)
+
+	s.connections = append(s.connections, connection)
+	return nil
+}
+
+//Configure the server for listen on an UDP addr
+func (s *Server) ListenUDPWithReusePort(addr string) error {
+
+	lc := net.ListenConfig{
+		Control: func(network, address string, c syscall.RawConn) error {
+			var opErr error
+			err := c.Control(func(fd uintptr) {
+				opErr = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.SO_REUSEPORT, 1)
+			})
+			if err != nil {
+				return err
+			}
+			return opErr
+		},
+	}
+
+	lp, err := lc.ListenPacket(context.Background(), "udp", addr)
+	if err != nil {
+		return err
+	}
+
+	connection := lp.(*net.UDPConn)
+	//err = ipv4.NewPacketConn(connection).SetControlMessage(ipv4.FlagDst|ipv4.FlagInterface, true)
+	//if err != nil {
+	//	return err
+	//}
+
+	//connection.SetReadBuffer(datagramReadBufferSize)
 
 	s.connections = append(s.connections, connection)
 	return nil
